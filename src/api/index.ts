@@ -1,0 +1,107 @@
+import 'dotenv/config';
+
+import Fastify from 'fastify';
+import {
+  serializerCompiler,
+  validatorCompiler,
+  jsonSchemaTransform,
+} from 'fastify-type-provider-zod';
+import swagger from '@fastify/swagger';
+import scalarReference from '@scalar/fastify-api-reference';
+import { registerCors } from './plugins/cors.js';
+import { registerHelmet } from './plugins/helmet.js';
+import { registerChatRoutes } from './routes/chat.js';
+
+const REQUIRED_ENV_VARS = ['LLM_PROVIDER', 'EMBEDDING_PROVIDER', 'VECTOR_DB'] as const;
+
+function validateEnv(): void {
+  const missing = REQUIRED_ENV_VARS.filter(
+    (varName) => !process.env[varName] || process.env[varName]?.trim() === '',
+  );
+
+  if (missing.length > 0) {
+    console.error(
+      `[FATAL] Missing required environment variables: ${missing.join(', ')}`,
+    );
+    console.error(
+      'Please set them in your .env file or environment before starting the server.',
+    );
+    process.exit(1);
+  }
+}
+
+async function start(): Promise<void> {
+  validateEnv();
+
+  const app = Fastify({ logger: true });
+
+  // Zod drives both validation and OpenAPI schema — single source of truth
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+
+  // Plugins
+  await registerCors(app);
+  await registerHelmet(app);
+
+  // Swagger (OpenAPI spec auto-generated from Zod schemas)
+  await app.register(swagger, {
+    openapi: {
+      info: {
+        title: 'FinDoc AI',
+        description: 'Financial Document Intelligence API',
+        version: '0.1.0',
+      },
+      tags: [
+        { name: 'Chat', description: 'LLM chat endpoints' },
+        { name: 'Health', description: 'Service health checks' },
+      ],
+    },
+    transform: jsonSchemaTransform,
+  });
+
+  // Scalar UI at /docs
+  await app.register(scalarReference, {
+    routePrefix: '/docs',
+  });
+
+  // Routes
+  await registerChatRoutes(app);
+
+  app.get('/health', {
+    schema: {
+      tags: ['Health'],
+      description: 'Service health check',
+    },
+  }, async () => ({ status: 'ok' }));
+
+  const port = Number(process.env['PORT'] ?? 3000);
+
+  try {
+    await app.listen({ port, host: '0.0.0.0' });
+
+    app.log.info(
+      {
+        llmProvider: process.env['LLM_PROVIDER'],
+        embeddingProvider: process.env['EMBEDDING_PROVIDER'],
+        vectorDb: process.env['VECTOR_DB'],
+        docs: `http://localhost:${String(port)}/docs`,
+      },
+      `FinDoc AI server started on port ${String(port)}`,
+    );
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+
+  // Graceful shutdown
+  const shutdown = async (signal: string): Promise<void> => {
+    app.log.info(`Received ${signal}. Shutting down gracefully...`);
+    await app.close();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+}
+
+void start();
