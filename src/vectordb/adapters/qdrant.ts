@@ -1,8 +1,4 @@
-import type {
-  IVectorDB,
-  VectorRecord,
-  SimilarityResult,
-} from "../interface.js";
+import type { IVectorDB, VectorRecord, SimilarityResult } from '../interface.js';
 
 /**
  * Qdrant adapter — placeholder.
@@ -18,7 +14,7 @@ import type {
  */
 
 const NOT_IMPLEMENTED_MESSAGE =
-  "Qdrant adapter is not yet implemented. Install @qdrant/js-client-rest and implement this adapter.";
+  'Qdrant adapter is not yet implemented. Install @qdrant/js-client-rest and implement this adapter.';
 
 export class QdrantAdapter implements IVectorDB {
   async upsert(_record: VectorRecord): Promise<void> {
@@ -35,7 +31,7 @@ export class QdrantAdapter implements IVectorDB {
     _embedding: number[],
     _topK: number,
     _threshold?: number,
-    _metadataFilter?: Record<string, unknown>
+    _metadataFilter?: Record<string, unknown>,
   ): Promise<SimilarityResult[]> {
     // qdrant.search(collectionName, { vector: embedding, limit: topK, score_threshold: threshold, filter: metadataFilter })
     throw new Error(NOT_IMPLEMENTED_MESSAGE);

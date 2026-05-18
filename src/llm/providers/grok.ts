@@ -8,36 +8,40 @@ interface TokenPricing {
   output: number;
 }
 
-/** Pricing per 1M tokens (USD) */
+/** Pricing per 1M tokens (USD) — https://x.ai/api */
 const PRICING: Record<string, TokenPricing> = {
-  'gpt-4o': { input: 2.5, output: 10.0 },
-  'gpt-4o-mini': { input: 0.15, output: 0.6 },
-  'gpt-4.1': { input: 2.0, output: 8.0 },
-  'gpt-4.1-mini': { input: 0.4, output: 1.6 },
-  'gpt-4.1-nano': { input: 0.1, output: 0.4 },
+  'grok-3': { input: 3.0, output: 15.0 },
+  'grok-3-fast': { input: 5.0, output: 25.0 },
+  'grok-3-mini': { input: 0.3, output: 0.5 },
+  'grok-3-mini-fast': { input: 0.6, output: 4.0 },
+  'grok-2-1212': { input: 2.0, output: 10.0 },
 };
+
+const DEFAULT_MODEL = 'grok-3-mini';
 
 function calculateCost(model: string, inputTokens: number, outputTokens: number): number {
   const pricing = PRICING[model];
-  if (!pricing) {
-    return 0;
-  }
+  if (!pricing) return 0;
   return (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output;
 }
 
-export class OpenAIClient implements ILLMClient {
+export class GrokClient implements ILLMClient {
   private readonly client: OpenAI;
 
   constructor() {
-    const apiKey = C.OPENAI_API_KEY;
+    const apiKey = C.XAI_API_KEY;
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required for the OpenAI provider.');
+      throw new Error('XAI_API_KEY environment variable is required for the Grok provider.');
     }
-    this.client = new OpenAI({ apiKey });
+    // xAI is OpenAI-compatible — just swap the base URL
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: 'https://api.x.ai/v1',
+    });
   }
 
   async complete(params: LLMCompletionParams): Promise<LLMCompletionResult> {
-    const model = params.model ?? C.DEFAULT_MODEL ?? 'gpt-4o';
+    const model = params.model ?? C.DEFAULT_MODEL ?? DEFAULT_MODEL;
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 
     if (params.systemPrompt) {
@@ -64,7 +68,7 @@ export class OpenAIClient implements ILLMClient {
     const cost = calculateCost(model, inputTokens, outputTokens);
 
     logLLMCall({
-      provider: 'openai',
+      provider: 'grok',
       model,
       inputTokens,
       outputTokens,
@@ -78,7 +82,7 @@ export class OpenAIClient implements ILLMClient {
   }
 
   async *stream(params: LLMCompletionParams): AsyncGenerator<string, void, unknown> {
-    const model = params.model ?? C.DEFAULT_MODEL ?? 'gpt-4o';
+    const model = params.model ?? C.DEFAULT_MODEL ?? DEFAULT_MODEL;
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 
     if (params.systemPrompt) {
@@ -107,8 +111,6 @@ export class OpenAIClient implements ILLMClient {
         fullResponse += delta;
         yield delta;
       }
-
-      // Capture usage from the final chunk if available
       if (chunk.usage) {
         inputTokens = chunk.usage.prompt_tokens;
         outputTokens = chunk.usage.completion_tokens;
@@ -119,7 +121,7 @@ export class OpenAIClient implements ILLMClient {
     const cost = calculateCost(model, inputTokens, outputTokens);
 
     logLLMCall({
-      provider: 'openai',
+      provider: 'grok',
       model,
       inputTokens,
       outputTokens,

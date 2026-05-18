@@ -19,7 +19,7 @@ export interface IVectorDB {
     embedding: number[],
     topK: number,
     threshold?: number,
-    metadataFilter?: Record<string, unknown>
+    metadataFilter?: Record<string, unknown>,
   ): Promise<SimilarityResult[]>;
   deleteByDocument(documentId: string): Promise<void>;
   healthCheck(): Promise<boolean>;

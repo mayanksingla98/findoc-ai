@@ -22,6 +22,7 @@
     "@fastify/cors": "^11.0.1",
     "@fastify/helmet": "^13.0.1",
     "@fastify/swagger": "^9.7.0",
+    "@google/generative-ai": "^0.24.1",
     "@langchain/community": "^0.3.43",
     "@langchain/langgraph": "^0.2.71",
     "@scalar/fastify-api-reference": "^1.55.3",

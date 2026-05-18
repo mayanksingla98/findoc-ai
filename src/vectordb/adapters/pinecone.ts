@@ -1,8 +1,4 @@
-import type {
-  IVectorDB,
-  VectorRecord,
-  SimilarityResult,
-} from "../interface.js";
+import type { IVectorDB, VectorRecord, SimilarityResult } from '../interface.js';
 
 /**
  * Pinecone adapter — placeholder.
@@ -18,7 +14,7 @@ import type {
  */
 
 const NOT_IMPLEMENTED_MESSAGE =
-  "Pinecone adapter is not yet implemented. Install @pinecone-database/pinecone and implement this adapter.";
+  'Pinecone adapter is not yet implemented. Install @pinecone-database/pinecone and implement this adapter.';
 
 export class PineconeAdapter implements IVectorDB {
   async upsert(_record: VectorRecord): Promise<void> {
@@ -36,7 +32,7 @@ export class PineconeAdapter implements IVectorDB {
     _embedding: number[],
     _topK: number,
     _threshold?: number,
-    _metadataFilter?: Record<string, unknown>
+    _metadataFilter?: Record<string, unknown>,
   ): Promise<SimilarityResult[]> {
     // index.query({ vector: embedding, topK, filter: metadataFilter, includeMetadata: true })
     throw new Error(NOT_IMPLEMENTED_MESSAGE);

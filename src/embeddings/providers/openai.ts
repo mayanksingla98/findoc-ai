@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import type { IEmbeddingClient } from '../interface.js';
+import { C } from '../../config.js';
 
-const DEFAULT_MODEL = 'text-embedding-3-small';
 const DEFAULT_DIMENSIONS = 1536;
 const MAX_BATCH_SIZE = 100;
 
@@ -11,13 +11,13 @@ export class OpenAIEmbeddingClient implements IEmbeddingClient {
   private readonly model: string;
 
   constructor() {
-    const apiKey = process.env['OPENAI_API_KEY'];
+    const apiKey = C.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error('Missing OPENAI_API_KEY environment variable.');
     }
 
     this.client = new OpenAI({ apiKey });
-    this.model = process.env['EMBEDDING_MODEL'] ?? DEFAULT_MODEL;
+    this.model = C.EMBEDDING_MODEL;
   }
 
   async generate(text: string): Promise<number[]> {

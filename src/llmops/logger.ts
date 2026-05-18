@@ -1,4 +1,5 @@
 import { Langfuse } from 'langfuse';
+import { C } from '../config.js';
 
 interface LLMCallLog {
   provider: string;
@@ -20,9 +21,9 @@ function getLangfuseClient(): Langfuse | null {
     return langfuseClient;
   }
 
-  const publicKey = process.env['LANGFUSE_PUBLIC_KEY'];
-  const secretKey = process.env['LANGFUSE_SECRET_KEY'];
-  const host = process.env['LANGFUSE_HOST'];
+  const publicKey = C.LANGFUSE_PUBLIC_KEY;
+  const secretKey = C.LANGFUSE_SECRET_KEY;
+  const host = C.LANGFUSE_HOST;
 
   if (!publicKey || !secretKey) {
     console.warn('[LLMOps] Langfuse keys not configured — skipping trace logging');

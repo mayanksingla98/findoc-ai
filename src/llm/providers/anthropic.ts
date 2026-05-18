@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ILLMClient, LLMCompletionParams, LLMCompletionResult } from '../interface.js';
+import { C } from '../../config.js';
 import { logLLMCall } from '../../llmops/logger.js';
 
 interface TokenPricing {
@@ -28,11 +29,9 @@ export class AnthropicClient implements ILLMClient {
   private readonly client: Anthropic;
 
   constructor() {
-    const apiKey = process.env['ANTHROPIC_API_KEY'];
+    const apiKey = C.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        'ANTHROPIC_API_KEY environment variable is required for the Anthropic provider.',
-      );
+      throw new Error('ANTHROPIC_API_KEY environment variable is required for the Anthropic provider.');
     }
     this.client = new Anthropic({ apiKey });
   }
@@ -99,10 +98,7 @@ export class AnthropicClient implements ILLMClient {
     });
 
     for await (const event of stream) {
-      if (
-        event.type === 'content_block_delta' &&
-        event.delta.type === 'text_delta'
-      ) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
         const delta = event.delta.text;
         fullResponse += delta;
         yield delta;

@@ -1,35 +1,24 @@
+import { C } from '../config.js';
+
 interface RouteDecision {
   model: string;
   reason: string;
 }
 
-type ContextType =
-  | 'rag_generation'
-  | 'agent_reasoning'
-  | 'classification'
-  | 'simple_lookup'
-  | 'extraction'
-  | 'general';
+type ContextType = 'rag_generation' | 'agent_reasoning' | 'classification' | 'simple_lookup' | 'extraction' | 'general';
 
-const CHEAP_CONTEXTS: ReadonlySet<ContextType> = new Set([
-  'classification',
-  'simple_lookup',
-]);
+const CHEAP_CONTEXTS: ReadonlySet<ContextType> = new Set(['classification', 'simple_lookup']);
 
-const EXPENSIVE_CONTEXTS: ReadonlySet<ContextType> = new Set([
-  'rag_generation',
-  'agent_reasoning',
-  'extraction',
-]);
+const EXPENSIVE_CONTEXTS: ReadonlySet<ContextType> = new Set(['rag_generation', 'agent_reasoning', 'extraction']);
 
 const SHORT_QUERY_WORD_LIMIT = 20;
 
 function getCheapModel(): string {
-  return process.env['CHEAP_MODEL'] ?? 'gpt-4o-mini';
+  return C.CHEAP_MODEL ?? 'gpt-4o-mini';
 }
 
 function getExpensiveModel(): string {
-  return process.env['DEFAULT_MODEL'] ?? 'gpt-4o';
+  return C.DEFAULT_MODEL ?? 'gpt-4o';
 }
 
 function countWords(text: string): number {
@@ -68,10 +57,8 @@ export function routeModel(query: string, contextType: ContextType): RouteDecisi
     }
   }
 
-  if (process.env['NODE_ENV'] === 'development') {
-    console.log(
-      `[LLMOps:Router] ${decision.model} — ${decision.reason} (context: ${contextType})`,
-    );
+  if (C.NODE_ENV === 'development') {
+    console.log(`[LLMOps:Router] ${decision.model} — ${decision.reason} (context: ${contextType})`);
   }
 
   return decision;

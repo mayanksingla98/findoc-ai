@@ -1,8 +1,4 @@
-import type {
-  IVectorDB,
-  VectorRecord,
-  SimilarityResult,
-} from "../interface.js";
+import type { IVectorDB, VectorRecord, SimilarityResult } from '../interface.js';
 
 /**
  * Milvus adapter — placeholder.
@@ -11,7 +7,7 @@ import type {
  */
 
 const NOT_IMPLEMENTED_MESSAGE =
-  "Milvus adapter is not yet implemented. Install @zilliz/milvus2-sdk-node and implement this adapter.";
+  'Milvus adapter is not yet implemented. Install @zilliz/milvus2-sdk-node and implement this adapter.';
 
 export class MilvusAdapter implements IVectorDB {
   async upsert(_record: VectorRecord): Promise<void> {
@@ -26,7 +22,7 @@ export class MilvusAdapter implements IVectorDB {
     _embedding: number[],
     _topK: number,
     _threshold?: number,
-    _metadataFilter?: Record<string, unknown>
+    _metadataFilter?: Record<string, unknown>,
   ): Promise<SimilarityResult[]> {
     throw new Error(NOT_IMPLEMENTED_MESSAGE);
   }

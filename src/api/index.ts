@@ -1,38 +1,13 @@
-import 'dotenv/config';
-
 import Fastify from 'fastify';
-import {
-  serializerCompiler,
-  validatorCompiler,
-  jsonSchemaTransform,
-} from 'fastify-type-provider-zod';
+import { serializerCompiler, validatorCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
 import swagger from '@fastify/swagger';
 import scalarReference from '@scalar/fastify-api-reference';
+import { C } from '../config.js';
 import { registerCors } from './plugins/cors.js';
 import { registerHelmet } from './plugins/helmet.js';
 import { registerChatRoutes } from './routes/chat.js';
 
-const REQUIRED_ENV_VARS = ['LLM_PROVIDER', 'EMBEDDING_PROVIDER', 'VECTOR_DB'] as const;
-
-function validateEnv(): void {
-  const missing = REQUIRED_ENV_VARS.filter(
-    (varName) => !process.env[varName] || process.env[varName]?.trim() === '',
-  );
-
-  if (missing.length > 0) {
-    console.error(
-      `[FATAL] Missing required environment variables: ${missing.join(', ')}`,
-    );
-    console.error(
-      'Please set them in your .env file or environment before starting the server.',
-    );
-    process.exit(1);
-  }
-}
-
 async function start(): Promise<void> {
-  validateEnv();
-
   const app = Fastify({ logger: true });
 
   // Zod drives both validation and OpenAPI schema — single source of truth
@@ -67,23 +42,27 @@ async function start(): Promise<void> {
   // Routes
   await registerChatRoutes(app);
 
-  app.get('/health', {
-    schema: {
-      tags: ['Health'],
-      description: 'Service health check',
+  app.get(
+    '/health',
+    {
+      schema: {
+        tags: ['Health'],
+        description: 'Service health check',
+      },
     },
-  }, async () => ({ status: 'ok' }));
+    async () => ({ status: 'ok' }),
+  );
 
-  const port = Number(process.env['PORT'] ?? 3000);
+  const port = C.PORT;
 
   try {
     await app.listen({ port, host: '0.0.0.0' });
 
     app.log.info(
       {
-        llmProvider: process.env['LLM_PROVIDER'],
-        embeddingProvider: process.env['EMBEDDING_PROVIDER'],
-        vectorDb: process.env['VECTOR_DB'],
+        llmProvider: C.LLM_PROVIDER,
+        embeddingProvider: C.EMBEDDING_PROVIDER,
+        vectorDb: C.VECTOR_DB,
         docs: `http://localhost:${String(port)}/docs`,
       },
       `FinDoc AI server started on port ${String(port)}`,
