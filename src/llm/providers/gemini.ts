@@ -64,7 +64,7 @@ export class GeminiClient implements ILLMClient {
           ...(params.jsonMode ? { responseMimeType: 'application/json' } : {}),
         },
       },
-      { apiVersion: 'v1' },
+      { apiVersion: 'v1beta' },
     );
 
     const start = Date.now();
@@ -105,7 +105,7 @@ export class GeminiClient implements ILLMClient {
           ...(params.jsonMode ? { responseMimeType: 'application/json' } : {}),
         },
       },
-      { apiVersion: 'v1' },
+      { apiVersion: 'v1beta' },
     );
 
     const start = Date.now();
