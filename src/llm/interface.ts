@@ -17,6 +17,7 @@ export interface LLMCompletionResult {
 }
 
 export interface ILLMClient {
+  readonly provider: string;
   complete(params: LLMCompletionParams): Promise<LLMCompletionResult>;
-  stream(params: LLMCompletionParams): AsyncGenerator<string, void, unknown>;
+  stream(params: LLMCompletionParams): AsyncGenerator<string, LLMCompletionResult, unknown>;
 }

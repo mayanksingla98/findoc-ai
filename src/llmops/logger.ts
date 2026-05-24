@@ -1,5 +1,6 @@
 import { Langfuse } from 'langfuse';
 import { C } from '../config.js';
+import { logger } from '../logger.js';
 
 interface LLMCallLog {
   provider: string;
@@ -26,7 +27,7 @@ function getLangfuseClient(): Langfuse | null {
   const host = C.LANGFUSE_HOST;
 
   if (!publicKey || !secretKey) {
-    console.warn('[LLMOps] Langfuse keys not configured — skipping trace logging');
+    logger.warn('[LLMOps] Langfuse keys not configured — skipping trace logging');
     return null;
   }
 
@@ -44,8 +45,16 @@ export async function logLLMCall(log: LLMCallLog): Promise<void> {
     const client = getLangfuseClient();
 
     if (!client) {
-      console.info(
-        `[LLMOps] ${log.provider}/${log.model} — ${log.inputTokens}+${log.outputTokens} tokens, $${log.cost.toFixed(6)}, ${log.latencyMs}ms`,
+      logger.info(
+        {
+          provider: log.provider,
+          model: log.model,
+          inputTokens: log.inputTokens,
+          outputTokens: log.outputTokens,
+          cost: log.cost,
+          latencyMs: log.latencyMs,
+        },
+        '[LLMOps] LLM call (Langfuse disabled)',
       );
       return;
     }
@@ -60,9 +69,14 @@ export async function logLLMCall(log: LLMCallLog): Promise<void> {
       },
     });
 
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - log.latencyMs);
+
     trace.generation({
       name: 'llm-call',
       model: log.model,
+      startTime,
+      endTime,
       input: log.prompt,
       output: log.response,
       usage: {
@@ -71,14 +85,12 @@ export async function logLLMCall(log: LLMCallLog): Promise<void> {
       },
       metadata: {
         cost: log.cost,
-        latencyMs: log.latencyMs,
         provider: log.provider,
         ...log.metadata,
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`[LLMOps] Failed to log LLM call to Langfuse: ${message}`);
+    logger.error({ err: error }, '[LLMOps] Failed to log LLM call to Langfuse');
   }
 }
 
@@ -89,8 +101,7 @@ export async function shutdownLogger(): Promise<void> {
       langfuseClient = null;
     }
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`[LLMOps] Failed to flush Langfuse on shutdown: ${message}`);
+    logger.error({ err: error }, '[LLMOps] Failed to flush Langfuse on shutdown');
   }
 }
 

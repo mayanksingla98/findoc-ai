@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
 import type { ILLMClient, LLMCompletionParams, LLMCompletionResult } from '../interface.js';
 import { C } from '../../config.js';
-import { logLLMCall } from '../../llmops/logger.js';
 
 interface TokenPricing {
   input: number;
@@ -26,6 +25,7 @@ function calculateCost(model: string, inputTokens: number, outputTokens: number)
 }
 
 export class OpenAIClient implements ILLMClient {
+  readonly provider = 'openai';
   private readonly client: OpenAI;
 
   constructor() {
@@ -63,21 +63,12 @@ export class OpenAIClient implements ILLMClient {
     const outputTokens = response.usage?.completion_tokens ?? 0;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'openai',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: text,
-    });
-
     return { text, inputTokens, outputTokens, model, cost, latencyMs };
   }
 
-  async *stream(params: LLMCompletionParams): AsyncGenerator<string, void, unknown> {
+  async *stream(
+    params: LLMCompletionParams,
+  ): AsyncGenerator<string, LLMCompletionResult, unknown> {
     const model = params.model ?? C.DEFAULT_MODEL ?? 'gpt-4o';
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 
@@ -108,7 +99,6 @@ export class OpenAIClient implements ILLMClient {
         yield delta;
       }
 
-      // Capture usage from the final chunk if available
       if (chunk.usage) {
         inputTokens = chunk.usage.prompt_tokens;
         outputTokens = chunk.usage.completion_tokens;
@@ -118,15 +108,6 @@ export class OpenAIClient implements ILLMClient {
     const latencyMs = Date.now() - start;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'openai',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: fullResponse,
-    });
+    return { text: fullResponse, inputTokens, outputTokens, model, cost, latencyMs };
   }
 }

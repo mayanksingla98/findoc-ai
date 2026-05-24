@@ -1,4 +1,5 @@
 import { C } from '../config.js';
+import { logger } from '../logger.js';
 
 interface RouteDecision {
   model: string;
@@ -57,9 +58,10 @@ export function routeModel(query: string, contextType: ContextType): RouteDecisi
     }
   }
 
-  if (C.NODE_ENV === 'development') {
-    console.log(`[LLMOps:Router] ${decision.model} — ${decision.reason} (context: ${contextType})`);
-  }
+  logger.debug(
+    { model: decision.model, reason: decision.reason, contextType },
+    '[LLMOps:Router] route decision',
+  );
 
   return decision;
 }

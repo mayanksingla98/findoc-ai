@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ILLMClient, LLMCompletionParams, LLMCompletionResult } from '../interface.js';
 import { C } from '../../config.js';
-import { logLLMCall } from '../../llmops/logger.js';
 
 interface TokenPricing {
   input: number;
@@ -26,6 +25,7 @@ function calculateCost(model: string, inputTokens: number, outputTokens: number)
 }
 
 export class AnthropicClient implements ILLMClient {
+  readonly provider = 'anthropic';
   private readonly client: Anthropic;
 
   constructor() {
@@ -62,27 +62,16 @@ export class AnthropicClient implements ILLMClient {
     const outputTokens = response.usage.output_tokens;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'anthropic',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: text,
-    });
-
     return { text, inputTokens, outputTokens, model, cost, latencyMs };
   }
 
-  async *stream(params: LLMCompletionParams): AsyncGenerator<string, void, unknown> {
+  async *stream(
+    params: LLMCompletionParams,
+  ): AsyncGenerator<string, LLMCompletionResult, unknown> {
     const model = params.model ?? DEFAULT_MODEL;
 
     const start = Date.now();
     let fullResponse = '';
-    let inputTokens = 0;
-    let outputTokens = 0;
 
     const stream = this.client.messages.stream({
       model,
@@ -106,21 +95,12 @@ export class AnthropicClient implements ILLMClient {
     }
 
     const finalMessage = await stream.finalMessage();
-    inputTokens = finalMessage.usage.input_tokens;
-    outputTokens = finalMessage.usage.output_tokens;
+    const inputTokens = finalMessage.usage.input_tokens;
+    const outputTokens = finalMessage.usage.output_tokens;
 
     const latencyMs = Date.now() - start;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'anthropic',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: fullResponse,
-    });
+    return { text: fullResponse, inputTokens, outputTokens, model, cost, latencyMs };
   }
 }

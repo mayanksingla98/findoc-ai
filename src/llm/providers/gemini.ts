@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import type { ILLMClient, LLMCompletionParams, LLMCompletionResult } from '../interface.js';
 import { C } from '../../config.js';
-import { logLLMCall } from '../../llmops/logger.js';
 
 interface TokenPricing {
   input: number;
@@ -40,6 +39,7 @@ function calculateCost(model: string, inputTokens: number, outputTokens: number)
 }
 
 export class GeminiClient implements ILLMClient {
+  readonly provider = 'gemini';
   private readonly client: GoogleGenerativeAI;
 
   constructor() {
@@ -77,21 +77,12 @@ export class GeminiClient implements ILLMClient {
     const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'gemini',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: text,
-    });
-
     return { text, inputTokens, outputTokens, model, cost, latencyMs };
   }
 
-  async *stream(params: LLMCompletionParams): AsyncGenerator<string, void, unknown> {
+  async *stream(
+    params: LLMCompletionParams,
+  ): AsyncGenerator<string, LLMCompletionResult, unknown> {
     const model = params.model ?? C.DEFAULT_MODEL ?? DEFAULT_MODEL;
 
     const genModel = this.client.getGenerativeModel(
@@ -127,15 +118,6 @@ export class GeminiClient implements ILLMClient {
     const outputTokens = finalResponse.usageMetadata?.candidatesTokenCount ?? 0;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'gemini',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: fullResponse,
-    });
+    return { text: fullResponse, inputTokens, outputTokens, model, cost, latencyMs };
   }
 }

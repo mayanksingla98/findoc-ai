@@ -38,49 +38,46 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
       const { message, systemPrompt, stream } = request.body;
       const resolvedSystemPrompt = systemPrompt ?? C.DEFAULT_CHAT_SYSTEM_PROMPT;
 
-      try {
-        const routeDecision = routeModel(message, 'general');
-        const llm = createLLMClient();
+      const routeDecision = routeModel(message, 'general');
+      const llm = createLLMClient().withContext({
+        traceId: request.id,
+        metadata: { route: 'chat', stream },
+      });
 
-        if (stream) {
-          void reply.raw.writeHead(200, {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Transfer-Encoding': 'chunked',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          });
+      if (stream) {
+        void reply.raw.writeHead(200, {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        });
 
-          const chunks = llm.stream({
-            prompt: message,
-            systemPrompt: resolvedSystemPrompt,
-            model: routeDecision.model,
-          });
-
-          for await (const chunk of chunks) {
-            reply.raw.write(chunk);
-          }
-
-          reply.raw.end();
-          return reply;
-        }
-
-        const result = await llm.complete({
+        const chunks = llm.stream({
           prompt: message,
           systemPrompt: resolvedSystemPrompt,
           model: routeDecision.model,
         });
 
-        return reply.status(200).send({
-          text: result.text,
-          model: result.model,
-          cost: result.cost,
-          latencyMs: result.latencyMs,
-        });
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        app.log.error({ error }, 'Chat endpoint error');
-        return reply.status(500).send({ error: 'Internal server error', message: errorMessage });
+        for await (const chunk of chunks) {
+          reply.raw.write(chunk);
+        }
+
+        reply.raw.end();
+        return reply;
       }
+
+      const result = await llm.complete({
+        prompt: message,
+        systemPrompt: resolvedSystemPrompt,
+        model: routeDecision.model,
+      });
+
+      return reply.status(200).send({
+        text: result.text,
+        model: result.model,
+        cost: result.cost,
+        latencyMs: result.latencyMs,
+      });
     },
   );
 }

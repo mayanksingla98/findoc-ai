@@ -4,8 +4,9 @@ import { OpenAIClient } from './providers/openai.js';
 import { AnthropicClient } from './providers/anthropic.js';
 import { GeminiClient } from './providers/gemini.js';
 import { GrokClient } from './providers/grok.js';
+import { ObservableLLMClient } from '../llmops/observable-llm.js';
 
-export function createLLMClient(): ILLMClient {
+function instantiate(): ILLMClient {
   switch (C.LLM_PROVIDER) {
     case 'openai':
       return new OpenAIClient();
@@ -16,4 +17,8 @@ export function createLLMClient(): ILLMClient {
     case 'grok':
       return new GrokClient();
   }
+}
+
+export function createLLMClient(): ObservableLLMClient {
+  return new ObservableLLMClient(instantiate());
 }

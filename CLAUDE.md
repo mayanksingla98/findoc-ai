@@ -94,12 +94,21 @@ evals/          # Evaluation golden sets
 4. Register in `src/api/index.ts`
 5. Docs appear automatically at `/docs`
 
+6. No try/catch — throw `AppError` subclasses from `src/errors.ts`; the global handler maps them to HTTP responses
+7. For LLM-using routes, pass the request ID: `createLLMClient().withContext({ traceId: request.id })`
+
 ## Adding a new LLM/embedding/vector DB provider
 
 1. Create the provider file in the appropriate `providers/` or `adapters/` directory
 2. Implement the interface (`ILLMClient`, `IEmbeddingClient`, or `IVectorDB`)
 3. Add the case to the factory's switch statement in `client.ts`
-4. LLM providers must call `logLLMCall()` from `src/llmops/logger.ts` before returning
+4. LLM providers stay pure — `ObservableLLMClient` wraps them at the factory and emits Langfuse traces. Just return a correct `LLMCompletionResult`.
+
+## Logging
+
+- Inside routes → `request.log` (includes `reqId`). Outside routes → `import { logger } from '../logger.js'`. Never `console.*`.
+- Always log structured objects, not interpolated strings — redaction only scans object paths, not string contents.
+- New sensitive env var, PII field, or auth header? Add it to `src/redact-paths.ts` (one of `ENV_VAR_NAMES`, `CREDENTIAL_FIELDS`, `HEADER_PATHS`) in the same PR. Do not inline paths in `src/logger.ts`.
 
 ## Infrastructure
 

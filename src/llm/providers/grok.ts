@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
 import type { ILLMClient, LLMCompletionParams, LLMCompletionResult } from '../interface.js';
 import { C } from '../../config.js';
-import { logLLMCall } from '../../llmops/logger.js';
 
 interface TokenPricing {
   input: number;
@@ -26,6 +25,7 @@ function calculateCost(model: string, inputTokens: number, outputTokens: number)
 }
 
 export class GrokClient implements ILLMClient {
+  readonly provider = 'grok';
   private readonly client: OpenAI;
 
   constructor() {
@@ -67,21 +67,12 @@ export class GrokClient implements ILLMClient {
     const outputTokens = response.usage?.completion_tokens ?? 0;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'grok',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: text,
-    });
-
     return { text, inputTokens, outputTokens, model, cost, latencyMs };
   }
 
-  async *stream(params: LLMCompletionParams): AsyncGenerator<string, void, unknown> {
+  async *stream(
+    params: LLMCompletionParams,
+  ): AsyncGenerator<string, LLMCompletionResult, unknown> {
     const model = params.model ?? C.DEFAULT_MODEL ?? DEFAULT_MODEL;
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 
@@ -120,15 +111,6 @@ export class GrokClient implements ILLMClient {
     const latencyMs = Date.now() - start;
     const cost = calculateCost(model, inputTokens, outputTokens);
 
-    logLLMCall({
-      provider: 'grok',
-      model,
-      inputTokens,
-      outputTokens,
-      cost,
-      latencyMs,
-      prompt: params.prompt,
-      response: fullResponse,
-    });
+    return { text: fullResponse, inputTokens, outputTokens, model, cost, latencyMs };
   }
 }

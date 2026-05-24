@@ -5,6 +5,7 @@ import { z } from 'zod';
 const ConfigSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   LLM_PROVIDER: z.enum(['openai', 'anthropic', 'gemini', 'grok']).default('openai'),
   EMBEDDING_PROVIDER: z.enum(['openai', 'cohere']).default('openai'),
